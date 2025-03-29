@@ -51,7 +51,7 @@ pub const unsafe fn get_absolute_from_rel8(ptr: *const c_void) -> *const c_void 
 ///
 /// An UnexpectedOpcodeError is returned if the opcode at the provided location does not correspond
 /// to a supported branch instruction.
-pub unsafe fn get_branch_target(ptr: *const c_void) -> Result<*const c_void, UnexpectedOpcodeError> {
+pub const unsafe fn get_branch_target(ptr: *const c_void) -> Result<*const c_void, UnexpectedOpcodeError> {
     let byte_ptr = ptr as *const u8;
     unsafe {
         let opcode = *byte_ptr;
