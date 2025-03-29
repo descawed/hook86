@@ -1,0 +1,15 @@
+[package]
+name = "hook86_macro"
+version = "0.1.0"
+authors = ["descawed <github@descawed.com>"]
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+hook86_core = { path = "../hook86_core" }
+proc-macro2 = "1.0.94"
+quote = "1.0.40"
+syn = "2.0.100"
+windows = { version = "0.61.1", features = ["Win32_Foundation"] }

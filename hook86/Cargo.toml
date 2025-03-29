@@ -1,0 +1,19 @@
+[package]
+name = "hook86"
+version = "0.1.0"
+authors = ["descawed <github@descawed.com>"]
+edition = "2024"
+description = "A Rust library for DLL-injection hacks on x86"
+readme = "../README.md"
+
+[dependencies]
+hook86_core = { path = "../hook86_core" }
+hook86_macro = { path = "../hook86_macro" }
+log = { version = "0.4.27", optional = true }
+memchr = "2.7.4"
+thiserror = "2.0.12"
+windows = { version = "0.61.1", features = ["Win32_Foundation", "Win32_System_Diagnostics_Debug", "Win32_System_Memory", "Win32_System_ProcessStatus", "Win32_System_Kernel", "Win32_System_SystemServices", "Win32_System_Threading"] }
+
+[features]
+default = []
+crash_logging = ["log"]

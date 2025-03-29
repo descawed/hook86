@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["hook86", "hook86_core", "hook86_macro"]
