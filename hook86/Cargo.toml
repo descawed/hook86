@@ -5,6 +5,7 @@ authors = ["descawed <github@descawed.com>"]
 edition = "2024"
 description = "A Rust library for DLL-injection hacks on x86"
 readme = "../README.md"
+repository = "https://github.com/descawed/hook86"
 
 [dependencies]
 hook86_core = { path = "../hook86_core" }
