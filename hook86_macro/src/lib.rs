@@ -118,7 +118,7 @@ impl Parse for Patch {
 /// The patch structure is shown by the following example:
 /// ```no_run
 /// patch! {
-///     pub TestPatch = [
+///     pub ExamplePatch = [
 ///         0x68 imm32 push_value // push push_value
 ///         0x29 0xD8 // sub eax, ebx
 ///         0x38 0xF4 0x04 // cmp eax, 4
@@ -128,7 +128,7 @@ impl Parse for Patch {
 /// }
 /// ```
 ///
-/// `TestPatch` is the name of a new type that will be defined. The patch body, in brackets, is a
+/// `ExamplePatch` is the name of a new type that will be defined. The patch body, in brackets, is a
 /// series of integers and placeholders making up the bytes of the patch. Integer values will be
 /// included in the patch bytes directly (values must be u8's; delimiting commas optional).
 /// Placeholders consist of a keyword followed by a unique name identifying the placeholder. The
