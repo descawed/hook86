@@ -14,10 +14,10 @@ supported, as that's the platform that the overwhelming majority of games target
 interest in adding Linux support, but it would require a big refactor and I also don't plan to do
 it until I have a project that requires it.
 
-The library includes a proc macro, so the repo is a workspace with three crates: `hook86_macro`,
-the proc macro; `hook86`, the main library; and `hook86_core` for types and functions needed by
-both the proc macro and the main library. For the purposes of this document, I'll only cover the
-modules of the main library.
+The library includes a proc macro, so the repo is a Cargo workspace with three crates:
+`hook86_macro`, the proc macro; `hook86`, the main library; and `hook86_core` for types and
+functions needed by both the proc macro and the main library. For the purposes of this document,
+I'll only cover the modules of the main library.
 
 ### asm
 
