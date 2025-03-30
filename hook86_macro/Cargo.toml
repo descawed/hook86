@@ -8,8 +8,6 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
-hook86_core = { path = "../hook86_core" }
 proc-macro2 = "1.0.94"
 quote = "1.0.40"
 syn = "2.0.100"
-windows = { version = "0.61.1", features = ["Win32_Foundation"] }

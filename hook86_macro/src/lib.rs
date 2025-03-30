@@ -185,14 +185,14 @@ pub fn patch(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #visibility struct #name {
             __buf: [u8; #patch_size],
-            #(#field_names: hook86_core::PatchPlaceholder),*
+            #(#field_names: hook86::PatchPlaceholder),*
         }
 
         impl #name {
             pub const fn new() -> Self {
                 Self {
                     __buf: [#(#buf_pieces)*],
-                    #(#field_names: hook86_core::PatchPlaceholder::new(#field_offsets, #field_relativity)),*
+                    #(#field_names: hook86::PatchPlaceholder::new(#field_offsets, #field_relativity)),*
                 }
             }
 
@@ -204,9 +204,9 @@ pub fn patch(input: TokenStream) -> TokenStream {
                 self.buf().as_ptr()
             }
 
-            pub fn bind(&mut self, #(#field_names: hook86_core::IntPtr,)*) -> windows::core::Result<*const u8> {
+            pub fn bind(&mut self, #(#field_names: hook86::IntPtr,)*) -> windows::core::Result<*const u8> {
                 #(self.#field_names.set_value(&mut self.__buf, #field_names);)*
-                hook86_core::unprotect(self.buf_raw() as *const std::ffi::c_void, #patch_size).map(|_| self.buf_raw())
+                hook86::unprotect(self.buf_raw() as *const std::ffi::c_void, #patch_size).map(|_| self.buf_raw())
             }
         }
     };

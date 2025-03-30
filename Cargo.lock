@@ -25,11 +25,9 @@ dependencies = [
 name = "hook86_macro"
 version = "0.1.0"
 dependencies = [
- "hook86_core",
  "proc-macro2",
  "quote",
  "syn",
- "windows",
 ]
 
 [[package]]
