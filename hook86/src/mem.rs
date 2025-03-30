@@ -10,7 +10,7 @@ use windows::Win32::System::ProcessStatus::{
 };
 use windows::Win32::System::Threading::GetCurrentProcess;
 
-pub use hook86_core::{unprotect, protect, patch};
+pub use hook86_core::{IntPtr, unprotect, protect, patch};
 
 /// A utility for searching for byte strings in memory
 ///
