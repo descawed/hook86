@@ -232,6 +232,31 @@ impl ByteSearcher {
             .filter_map(|&module_name| self.modules.get(&module_name.to_lowercase()))
     }
 
+    /// Search for byte strings anywhere in process memory
+    ///
+    /// # Arguments
+    ///
+    /// * `patterns` - The byte strings to search for
+    /// * `protection` - If provided, only search memory regions matching one of the specified protection flags
+    ///
+    /// # Return
+    ///
+    /// An array of `Option<*const c_void>` with the same number of elements as the `patterns` argument.
+    /// If the corresponding byte string was found, the value will be `Some(ptr)`, where `ptr` is a
+    /// pointer to the location where the byte string was found. If the byte string was not found,
+    /// the element in the return array will be `None`.
+    pub fn find_bytes_anywhere<const N: usize>(
+        patterns: &[&[u8]; N],
+        protection: Option<PAGE_PROTECTION_FLAGS>,
+    ) -> [Option<*const c_void>; N] {
+        // we'll use the standard page size as the minimum address
+        Self::find_bytes_in_ranges(
+            patterns,
+            protection,
+            [&(0x1000 as *const c_void, usize::MAX as *const c_void)].into_iter(),
+        )
+    }
+
     /// Search for byte strings in process memory
     ///
     /// # Arguments
@@ -255,12 +280,7 @@ impl ByteSearcher {
         if M > 0 {
             Self::find_bytes_in_ranges(patterns, protection, self.get_module_ranges(modules))
         } else {
-            // we'll use the standard page size as the minimum address
-            Self::find_bytes_in_ranges(
-                patterns,
-                protection,
-                [&(0x1000 as *const c_void, usize::MAX as *const c_void)].into_iter(),
-            )
+            Self::find_bytes_anywhere(patterns, protection)
         }
     }
 
