@@ -171,6 +171,10 @@ impl ByteSearcher {
     ///
     /// This method must be called once prior to attempting any searches that filter by module.
     pub fn discover_modules(&mut self) -> Result<()> {
+        // reset module list in case we need to discover modules multiple times (e.g. dynamic DLL
+        // load)
+        self.modules.clear();
+
         let mut modules = [HMODULE::default(); 1024];
         let mut bytes_needed = 0;
         let hproc = unsafe { GetCurrentProcess() };
