@@ -5,6 +5,13 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{bracketed, parse_macro_input, Error, Ident, LitInt, Token, Visibility};
 
+macro_rules! byte {
+    ($buf:expr, $byte:expr) => {
+        $buf.push($byte);
+        continue;
+    }
+}
+
 #[derive(Debug)]
 enum PatchComponent {
     Bytes(Vec<u8>),
@@ -56,9 +63,22 @@ impl Parse for Patch {
                 current_buf.push(byte.base10_parse::<u8>()?);
             } else {
                 let instruction: Ident = content.parse()?;
-                let target: Ident = content.parse()?;
+                let inst_string = instruction.to_string();
+                match inst_string.as_str() {
+                    "pushad" => {
+                        byte!(current_buf, 0x60);
+                    }
+                    "popad" => {
+                        byte!(current_buf, 0x61);
+                    }
+                    "ret" | "retn" => {
+                        byte!(current_buf, 0xC3);
+                    }
+                    _ => (),
+                }
 
-                let component = match instruction.to_string().as_str() {
+                let target: Ident = content.parse()?;
+                let component = match inst_string.as_str() {
                     "imm32" => PatchComponent::Imm32(target),
                     "rel32" => PatchComponent::Rel32(vec![], target),
                     "call" => PatchComponent::Rel32(vec![0xE8], target),
@@ -129,8 +149,8 @@ impl Parse for Patch {
 /// ```
 ///
 /// `ExamplePatch` is the name of a new type that will be defined. The patch body, in brackets, is a
-/// series of integers and placeholders making up the bytes of the patch. Integer values will be
-/// included in the patch bytes directly (values must be u8's; delimiting commas optional).
+/// series of integers, keywords, and placeholders making up the bytes of the patch. Integer values
+/// will be included in the patch bytes directly (values must be u8's; delimiting commas optional).
 /// Placeholders consist of a keyword followed by a unique name identifying the placeholder. The
 /// keyword can be `imm32`, indicating a 32-bit placeholder that will be filled in at runtime with
 /// the exact provided value; `rel32`, indicating a 32-bit placeholder that will be filled in at
