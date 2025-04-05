@@ -87,7 +87,7 @@ impl ByteSearcher {
 
                 if search_func(search_base, memory_info.RegionSize, &mut results) {
                     // if search_func returns true, we've found everything we were looking for
-                    break;
+                    return results;
                 }
             }
         }
