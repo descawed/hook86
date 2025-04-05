@@ -6,18 +6,10 @@ version = 4
 name = "hook86"
 version = "0.1.0"
 dependencies = [
- "hook86_core",
  "hook86_macro",
  "log",
  "memchr",
  "thiserror",
- "windows",
-]
-
-[[package]]
-name = "hook86_core"
-version = "0.1.0"
-dependencies = [
  "windows",
 ]
 

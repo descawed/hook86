@@ -4,13 +4,41 @@ use std::collections::HashMap;
 use memchr::memmem;
 use windows::core::{PWSTR, Result};
 use windows::Win32::Foundation::{HMODULE, MAX_PATH};
-use windows::Win32::System::Memory::{VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS, PAGE_READWRITE, PAGE_WRITECOPY};
+use windows::Win32::System::Memory::{VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS, PAGE_READWRITE, PAGE_WRITECOPY};
 use windows::Win32::System::ProcessStatus::{
     EnumProcessModules, GetModuleBaseNameW, GetModuleInformation, MODULEINFO,
 };
 use windows::Win32::System::Threading::GetCurrentProcess;
 
-pub use hook86_core::{IntPtr, unprotect, protect, patch};
+// currently we only support 32-bit x86, but I'd like to keep the flexibility to support x64 in the
+// future, so we'll use this type alias and maybe change it to a usize once we're ready to support
+// both architectures.
+pub type IntPtr = u32;
+pub const PTR_SIZE: usize = size_of::<IntPtr>();
+
+/// Make a memory region readable, writable, and executable
+pub fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAGS> {
+    let mut old_protect = PAGE_PROTECTION_FLAGS::default();
+    unsafe { VirtualProtect(ptr, size, PAGE_EXECUTE_READWRITE, &mut old_protect) }?;
+
+    Ok(old_protect)
+}
+
+/// Set the memory protection on a memory region
+pub fn protect(ptr: *const c_void, size: usize, protection: PAGE_PROTECTION_FLAGS) -> Result<()> {
+    let mut old_protect = PAGE_PROTECTION_FLAGS::default();
+    unsafe { VirtualProtect(ptr, size, protection, &mut old_protect) }
+}
+
+/// Write the given data to the specified address within a protected memory region
+///
+/// The region containing the address will be unprotected prior to the write. After writing, the
+/// original protection will be restored.
+pub unsafe fn patch(addr: *const c_void, data: &[u8]) -> Result<()> {
+    let old_protect = unprotect(addr, data.len())?;
+    unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, data.len()).copy_from_slice(data) };
+    protect(addr, data.len(), old_protect)
+}
 
 /// A utility for searching for byte strings in memory
 ///
