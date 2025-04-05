@@ -4,7 +4,9 @@ use std::collections::HashMap;
 use memchr::memmem;
 use windows::core::{PWSTR, Result};
 use windows::Win32::Foundation::{HMODULE, MAX_PATH};
-use windows::Win32::System::Memory::{VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS, PAGE_READWRITE, PAGE_WRITECOPY};
+use windows::Win32::System::Memory::{VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_PROTECTION_FLAGS,
+                                     PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY,
+                                     PAGE_READWRITE, PAGE_WRITECOPY, PAGE_READONLY};
 use windows::Win32::System::ProcessStatus::{
     EnumProcessModules, GetModuleBaseNameW, GetModuleInformation, MODULEINFO,
 };
@@ -15,6 +17,10 @@ use windows::Win32::System::Threading::GetCurrentProcess;
 // both architectures.
 pub type IntPtr = u32;
 pub const PTR_SIZE: usize = size_of::<IntPtr>();
+
+/// The set of all protection flags that allow reading from the protected memory
+pub const READABLE_PROTECTION: PAGE_PROTECTION_FLAGS =
+    PAGE_PROTECTION_FLAGS(PAGE_EXECUTE_READ.0 | PAGE_READONLY.0 | PAGE_READWRITE.0 | PAGE_WRITECOPY.0 | PAGE_EXECUTE_WRITECOPY.0 | PAGE_EXECUTE_READWRITE.0);
 
 /// Make a memory region readable, writable, and executable
 pub fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAGS> {
@@ -64,6 +70,9 @@ impl ByteSearcher {
         ranges: impl Iterator<Item = &'a (*const c_void, *const c_void)>,
         search_func: impl Fn(*const u8, usize, &mut [T]) -> bool,
     ) -> [T; N] {
+        // if no specific protection filter was requested, set the filter to be only readable memory
+        let protection = protection.unwrap_or(READABLE_PROTECTION);
+
         let mut results = [Default::default(); N];
         for &(start, end) in ranges {
             let mut addr = start;
@@ -79,9 +88,7 @@ impl ByteSearcher {
                 let search_base = addr as *const u8;
                 addr = unsafe { memory_info.BaseAddress.add(memory_info.RegionSize) };
 
-                if memory_info.State != MEM_COMMIT
-                    || protection.is_some_and(|p| !p.contains(memory_info.Protect))
-                {
+                if memory_info.State != MEM_COMMIT || !protection.contains(memory_info.Protect) {
                     continue;
                 }
 

@@ -230,7 +230,6 @@ pub fn install_panic_logger() {
         log::error!("Panic in {} on line {}: {}", file, line, msg);
         log::logger().flush();
     }));
-    log::debug!("Rust panic logger installed");
 }
 
 /// Install a Windows vectored exception handler that logs process crashes with the log crate
@@ -238,7 +237,6 @@ pub fn install_os_crash_logger() {
     unsafe {
         AddVectoredExceptionHandler(0, Some(exception_handler));
     }
-    log::debug!("Windows crash logger installed");
 }
 
 /// Install handlers that log crashes with the log crate, whether the crash originates in Rust code or not
