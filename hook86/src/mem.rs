@@ -312,12 +312,3 @@ impl ByteSearcher {
         self.find_addresses(addresses, Some(PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE), modules)
     }
 }
-
-// SAFETY: the raw pointers held by the ByteSearcher are read-only so there are no special
-// considerations for access from multiple threads
-// to be clear: there is a potential thread-safety concern with ByteSearcher; specifically, if the
-// ByteSearcher is searching a memory region and another thread decommits that memory region.
-// however, this is outside the scope of the ByteSearcher type because ByteSearcher does not manage
-// the lifetime of memory regions.
-unsafe impl Sync for ByteSearcher {}
-unsafe impl Send for ByteSearcher {}
