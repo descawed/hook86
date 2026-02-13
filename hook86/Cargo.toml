@@ -9,10 +9,10 @@ repository = "https://github.com/descawed/hook86"
 
 [dependencies]
 hook86_macro = { path = "../hook86_macro" }
-log = { version = "0.4.27", optional = true }
-memchr = "2.7.4"
-thiserror = "2.0.12"
-windows = { version = "0.61.1", features = ["Win32_Foundation", "Win32_System_Diagnostics_Debug", "Win32_System_Memory", "Win32_System_ProcessStatus", "Win32_System_Kernel", "Win32_System_SystemServices", "Win32_System_Threading"] }
+log = { version = "0.4.28", optional = true }
+memchr = "2.8.0"
+thiserror = "2.0.17"
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Diagnostics_Debug", "Win32_System_Memory", "Win32_System_ProcessStatus", "Win32_System_Kernel", "Win32_System_SystemServices", "Win32_System_Threading"] }
 
 [features]
 default = []
