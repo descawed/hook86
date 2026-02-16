@@ -12,7 +12,8 @@ hook86_macro = { path = "../hook86_macro" }
 log = { version = "0.4.28", optional = true }
 memchr = "2.8.0"
 thiserror = "2.0.17"
-windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Diagnostics_Debug", "Win32_System_Memory", "Win32_System_ProcessStatus", "Win32_System_Kernel", "Win32_System_SystemServices", "Win32_System_Threading"] }
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Diagnostics_Debug", "Win32_System_Memory", "Win32_System_ProcessStatus", "Win32_System_Kernel", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_UI_Input", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-result = "0.4.1"
 
 [features]
 default = []
