@@ -113,9 +113,6 @@ unsafe extern "system" fn exception_handler(exc_info: *mut EXCEPTION_POINTERS) -
                 let line_addr = ptr;
                 for word in &mut words {
                     let mut word_buf = [0u8; size_of::<usize>()];
-                    if region_end < ptr {
-                        log::error!("Stack pointer {ptr:08X} is beyond the end of the current stack region {region_end:08X}: {info:?}");
-                    }
                     let bytes_to_copy = cmp::min(region_end - ptr, word_buf.len());
                     if bytes_to_copy > 0 {
                         (ptr as *const u8)
@@ -140,7 +137,7 @@ unsafe extern "system" fn exception_handler(exc_info: *mut EXCEPTION_POINTERS) -
                             break;
                         }
 
-                        region_end = info.AllocationBase as usize + info.RegionSize;
+                        region_end = info.BaseAddress as usize + info.RegionSize;
                         let remaining_bytes = word_buf.len() - bytes_to_copy;
                         (ptr as *const u8).copy_to_nonoverlapping(
                             word_buf[bytes_to_copy..].as_mut_ptr(),
