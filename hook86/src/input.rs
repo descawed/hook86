@@ -4,6 +4,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::*;
 pub struct Keyboard {
     old_keys: [u8; 256],
     new_keys: [u8; 256],
+    async_keys: [bool; 256],
 }
 
 impl Keyboard {
@@ -11,6 +12,7 @@ impl Keyboard {
         Self {
             old_keys: [0; 256],
             new_keys: [0; 256],
+            async_keys: [false; 256],
         }
     }
 
@@ -46,5 +48,16 @@ impl Keyboard {
 
     pub const fn is_key_toggled(&self, key: VIRTUAL_KEY) -> bool {
         self.new_keys[key.0 as usize] & 1 != 0
+    }
+
+    pub fn is_key_down_async(&self, key: VIRTUAL_KEY) -> bool {
+        unsafe { GetAsyncKeyState(key.0 as i32) < 0 }
+    }
+    
+    pub fn track_key_down_async_once(&mut self, key: VIRTUAL_KEY) -> bool {
+        let is_down = self.is_key_down_async(key);
+        let is_down_once = is_down && !self.async_keys[key.0 as usize];
+        self.async_keys[key.0 as usize] = is_down;
+        is_down_once
     }
 }
