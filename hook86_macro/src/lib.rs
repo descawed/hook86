@@ -224,9 +224,9 @@ pub fn patch(input: TokenStream) -> TokenStream {
                 self.buf().as_ptr()
             }
 
-            pub fn bind(&mut self, #(#field_names: hook86::mem::IntPtr,)*) -> windows::core::Result<*const u8> {
+            pub unsafe fn bind(&mut self, #(#field_names: hook86::mem::IntPtr,)*) -> windows::core::Result<*const u8> {
                 #(self.#field_names.set_value(&mut self.__buf, #field_names);)*
-                hook86::mem::unprotect(self.buf_raw() as *const std::ffi::c_void, #patch_size).map(|_| self.buf_raw())
+                unsafe { hook86::mem::unprotect(self.buf_raw() as *const std::ffi::c_void, #patch_size).map(|_| self.buf_raw()) }
             }
         }
     };

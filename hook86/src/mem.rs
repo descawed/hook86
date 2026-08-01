@@ -23,7 +23,7 @@ pub const READABLE_PROTECTION: PAGE_PROTECTION_FLAGS =
     PAGE_PROTECTION_FLAGS(PAGE_EXECUTE_READ.0 | PAGE_READONLY.0 | PAGE_READWRITE.0 | PAGE_WRITECOPY.0 | PAGE_EXECUTE_WRITECOPY.0 | PAGE_EXECUTE_READWRITE.0);
 
 /// Make a memory region readable, writable, and executable
-pub fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAGS> {
+pub unsafe fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAGS> {
     let mut old_protect = PAGE_PROTECTION_FLAGS::default();
     unsafe { VirtualProtect(ptr, size, PAGE_EXECUTE_READWRITE, &mut old_protect) }?;
 
@@ -31,7 +31,7 @@ pub fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAG
 }
 
 /// Set the memory protection on a memory region
-pub fn protect(ptr: *const c_void, size: usize, protection: PAGE_PROTECTION_FLAGS) -> Result<()> {
+pub unsafe fn protect(ptr: *const c_void, size: usize, protection: PAGE_PROTECTION_FLAGS) -> Result<()> {
     let mut old_protect = PAGE_PROTECTION_FLAGS::default();
     unsafe { VirtualProtect(ptr, size, protection, &mut old_protect) }
 }
@@ -41,9 +41,11 @@ pub fn protect(ptr: *const c_void, size: usize, protection: PAGE_PROTECTION_FLAG
 /// The region containing the address will be unprotected prior to the write. After writing, the
 /// original protection will be restored.
 pub unsafe fn patch(addr: *const c_void, data: &[u8]) -> Result<()> {
-    let old_protect = unprotect(addr, data.len())?;
-    unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, data.len()).copy_from_slice(data) };
-    protect(addr, data.len(), old_protect)
+    unsafe {
+        let old_protect = unprotect(addr, data.len())?;
+        std::slice::from_raw_parts_mut(addr as *mut u8, data.len()).copy_from_slice(data);
+        protect(addr, data.len(), old_protect)
+    }
 }
 
 /// A utility for searching for byte strings in memory
