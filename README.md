@@ -20,7 +20,7 @@ I'll only cover the modules of the main library.
 
 ### asm
 
-Functions for generating common branch instructions (e.g. call, jmp, jz, jle, etc.) from one
+Functions for generating common branch instructions (e.g., call, jmp, jz, jle, etc.) from one
 address to another. Also contains the `get_branch_target` function which will read a branch
 instruction at the given address and return the absolute address that the branch targets.
 
@@ -31,7 +31,7 @@ Optional crash logging infrastructure for when the hacks are a little too hacky.
 
 ### mem
 
-Contains utilities for manipulating memory - removing protection (i.e. enabling read, write, and
+Contains utilities for manipulating memory – removing protection (i.e., enabling read, write, and
 execute permissions), changing protection, patching game memory. Also includes the `ByteSearcher`
 type which allows you to search for byte strings in program memory with optional filters for
 where in memory or in what type of memory we should search. `ByteSearcher` can also verify that

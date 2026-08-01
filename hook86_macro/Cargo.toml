@@ -1,6 +1,6 @@
 [package]
 name = "hook86_macro"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["descawed <github@descawed.com>"]
 edition = "2024"
 
@@ -8,6 +8,6 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0.103"
-quote = "1.0.42"
-syn = "2.0.110"
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
+syn = "3.0.3"
