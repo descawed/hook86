@@ -85,6 +85,12 @@ impl<T> IntoAddress for *mut T {
     }
 }
 
+impl<T> IntoAddress for &T {
+    fn into_address(self) -> IntPtr {
+        (self as *const T).into_address()
+    }
+}
+
 macro_rules! fn_addr_abi {
     ($abi:literal, $($types:ident),*) => {
         impl<Return, $($types),*> IntoAddress for extern $abi fn($($types),*) -> Return {
