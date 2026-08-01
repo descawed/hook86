@@ -66,7 +66,7 @@ pub const unsafe fn get_branch_target(ptr: *const c_void) -> Result<*const c_voi
             0x0F => {
                 let sub_opcode = *byte_ptr.offset(1);
                 match sub_opcode {
-                    0x84 | 0x8C | 0x8D | 0x87 | 0x83 | 0x82 | 0x86 | 0x8F | 0x8E | 0x85 | 0x8B | 0x81 | 0x89 | 0x80 | 0x8A | 0x88 => get_absolute_from_rel32::<6>(ptr),
+                    0x80..=0x8F => get_absolute_from_rel32::<6>(ptr),
                     _ => return Err(UnexpectedOpcodeError::DoubleByteOpcode { ptr, opcode1: opcode, opcode2: sub_opcode }),
                 }
             }
