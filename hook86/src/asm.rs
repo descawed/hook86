@@ -9,10 +9,10 @@ pub const NOP: u8 = 0x90;
 
 #[derive(Error, Debug)]
 pub enum UnexpectedOpcodeError {
-    #[error("Unexpected opcode {opcode:02X} at {ptr:p}")]
-    SingleByteOpcode { ptr: *const c_void, opcode: u8 },
-    #[error("Unexpected opcode {opcode1:02X} {opcode2:02X} at {ptr:p}")]
-    DoubleByteOpcode { ptr: *const c_void, opcode1: u8, opcode2: u8 },
+    #[error("Unexpected opcode {opcode:02X} at {ptr:X}")]
+    SingleByteOpcode { ptr: IntPtr, opcode: u8 },
+    #[error("Unexpected opcode {opcode1:02X} {opcode2:02X} at {ptr:X}")]
+    DoubleByteOpcode { ptr: IntPtr, opcode1: u8, opcode2: u8 },
 }
 
 /// Get an absolute address from an instruction containing a 32-bit relative offset
@@ -53,8 +53,9 @@ pub const unsafe fn get_absolute_from_rel8(ptr: *const c_void) -> *const c_void 
 ///
 /// An UnexpectedOpcodeError is returned if the opcode at the provided location does not correspond
 /// to a supported branch instruction.
-pub const unsafe fn get_branch_target(ptr: *const c_void) -> Result<*const c_void, UnexpectedOpcodeError> {
+pub unsafe fn get_branch_target(ptr: *const c_void) -> Result<*const c_void, UnexpectedOpcodeError> {
     let byte_ptr = ptr as *const u8;
+    let int_ptr = ptr as IntPtr;
     unsafe {
         let opcode = *byte_ptr;
         Ok(match opcode {
@@ -69,10 +70,10 @@ pub const unsafe fn get_branch_target(ptr: *const c_void) -> Result<*const c_voi
                 let sub_opcode = *byte_ptr.offset(1);
                 match sub_opcode {
                     0x80..=0x8F => get_absolute_from_rel32::<6>(ptr),
-                    _ => return Err(UnexpectedOpcodeError::DoubleByteOpcode { ptr, opcode1: opcode, opcode2: sub_opcode }),
+                    _ => return Err(UnexpectedOpcodeError::DoubleByteOpcode { ptr: int_ptr, opcode1: opcode, opcode2: sub_opcode }),
                 }
             }
-            _ => return Err(UnexpectedOpcodeError::SingleByteOpcode { ptr, opcode }),
+            _ => return Err(UnexpectedOpcodeError::SingleByteOpcode { ptr: int_ptr, opcode }),
         })
     }
 }
