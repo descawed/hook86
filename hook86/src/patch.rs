@@ -14,6 +14,7 @@ pub struct Hook {
 
 impl Hook {
     // builder methods
+    /// Create a new hook that will patch the provided bytes at the specified address
     pub fn new<T>(address: *mut T, patch_bytes: &[u8]) -> Self {
         Self {
             address: address as *mut u8,
@@ -23,22 +24,27 @@ impl Hook {
         }
     }
 
+    /// Create a new hook that will patch a call to `target` at the specified address
     pub fn call<T>(address: *mut T, target: impl IntoAddress) -> Self {
         Self::new(address, &call(address.into_address(), target.into_address()))
     }
 
+    /// Create a new hook that will patch a jump to `target` at the specified address
     pub fn jmp<T>(address: *mut T, target: impl IntoAddress) -> Self {
         Self::new(address, &jmp(address.into_address(), target.into_address()))
     }
 
+    /// Create a new hook that will patch a jump-if-zero/equal to `target` at the specified address
     pub fn jz<T>(address: *mut T, target: impl IntoAddress) -> Self {
         Self::new(address, &jz(address.into_address(), target.into_address()))
     }
 
+    /// Create a new hook that will patch a jump-if-greater-than-or-equal to `target` at the specified address
     pub fn jge<T>(address: *mut T, target: impl IntoAddress) -> Self {
         Self::new(address, &jge(address.into_address(), target.into_address()))
     }
 
+    /// Create a new hook that will patch a jump-if-less-than to `target` at the specified address
     pub fn jl<T>(address: *mut T, target: impl IntoAddress) -> Self {
         Self::new(address, &jl(address.into_address(), target.into_address()))
     }
@@ -68,6 +74,7 @@ impl Hook {
         self
     }
 
+    /// Install the hook persistently, consuming the `Hook` instance in the process
     pub unsafe fn install_persistent(mut self) -> Result<(), mem::MemoryError> {
         unsafe { self.install() }?;
         self.persist();
