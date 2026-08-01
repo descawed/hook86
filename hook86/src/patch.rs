@@ -38,9 +38,7 @@ impl PatchPlaceholder {
     }
 }
 
-// commented out for now until I figure out how to have the macro refer to types in the crate::
-// namespace here but the hook86:: namespace for external users
-/*#[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -62,4 +60,4 @@ mod tests {
         let buf = test_patch.buf();
         assert_eq!(buf[buf.len() - 5..], [0x68, 0xD2, 0x04, 0x00, 0x00]);
     }
-}*/
+}

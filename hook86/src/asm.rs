@@ -2,6 +2,8 @@ use core::ffi::c_void;
 
 use thiserror::Error;
 
+use crate::{IntPtr, PTR_SIZE};
+
 /// The opcode of the nop instruction
 pub const NOP: u8 = 0x90;
 
@@ -76,15 +78,15 @@ pub const unsafe fn get_branch_target(ptr: *const c_void) -> Result<*const c_voi
 }
 
 /// Get the relative offset between two addresses as a byte array
-const fn addr_offset<const N: usize>(
-    from: usize,
-    to: usize,
-) -> [u8; size_of::<usize>()] {
+const fn addr_offset<const N: IntPtr>(
+    from: IntPtr,
+    to: IntPtr,
+) -> [u8; PTR_SIZE] {
     to.overflowing_sub(from + N).0.to_le_bytes()
 }
 
 /// Get the bytes of a call instruction from one address to another
-pub const fn call(from: usize, to: usize) -> [u8; 5] {
+pub const fn call(from: IntPtr, to: IntPtr) -> [u8; 5] {
     let bytes = addr_offset::<5>(from, to);
     [0xE8, bytes[0], bytes[1], bytes[2], bytes[3]]
 }
@@ -93,12 +95,12 @@ pub const fn call(from: usize, to: usize) -> [u8; 5] {
 ///
 /// The returned instruction always uses a 32-bit offset even if the displacement could fit in an
 /// 8-bit offset.
-pub const fn jmp(from: usize, to: usize) -> [u8; 5] {
+pub const fn jmp(from: IntPtr, to: IntPtr) -> [u8; 5] {
     let bytes = addr_offset::<5>(from, to);
     [0xE9, bytes[0], bytes[1], bytes[2], bytes[3]]
 }
 
-const fn cond_jmp(from: usize, to: usize, cond: u8) -> [u8; 6] {
+const fn cond_jmp(from: IntPtr, to: IntPtr, cond: u8) -> [u8; 6] {
     let bytes = addr_offset::<6>(from, to);
     [0x0F, cond, bytes[0], bytes[1], bytes[2], bytes[3]]
 }
@@ -107,7 +109,7 @@ const fn cond_jmp(from: usize, to: usize, cond: u8) -> [u8; 6] {
 ///
 /// The returned instruction always uses a 32-bit offset even if the displacement could fit in an
 /// 8-bit offset.
-pub const fn jz(from: usize, to: usize) -> [u8; 6] {
+pub const fn jz(from: IntPtr, to: IntPtr) -> [u8; 6] {
     cond_jmp(from, to, 0x84)
 }
 
@@ -115,7 +117,7 @@ pub const fn jz(from: usize, to: usize) -> [u8; 6] {
 ///
 /// The returned instruction always uses a 32-bit offset even if the displacement could fit in an
 /// 8-bit offset.
-pub const fn jl(from: usize, to: usize) -> [u8; 6] {
+pub const fn jl(from: IntPtr, to: IntPtr) -> [u8; 6] {
     cond_jmp(from, to, 0x8C)
 }
 
@@ -123,12 +125,12 @@ pub const fn jl(from: usize, to: usize) -> [u8; 6] {
 ///
 /// The returned instruction always uses a 32-bit offset even if the displacement could fit in an
 /// 8-bit offset.
-pub const fn jge(from: usize, to: usize) -> [u8; 6] {
+pub const fn jge(from: IntPtr, to: IntPtr) -> [u8; 6] {
     cond_jmp(from, to, 0x8D)
 }
 
 /// Get the bytes of a push instruction that pushes the provided immediate value onto the stack
-pub const fn push(imm: usize) -> [u8; 5] {
+pub const fn push(imm: u32) -> [u8; 5] {
     let bytes = imm.to_le_bytes();
     [0x68, bytes[0], bytes[1], bytes[2], bytes[3]]
 }
