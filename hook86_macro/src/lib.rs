@@ -205,14 +205,14 @@ pub fn patch(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #visibility struct #name {
             __buf: [u8; #patch_size],
-            #(#field_names: hook86::patch::PatchPlaceholder),*
+            #(#field_names: ::hook86::patch::PatchPlaceholder),*
         }
 
         impl #name {
             pub const fn new() -> Self {
                 Self {
                     __buf: [#(#buf_pieces)*],
-                    #(#field_names: hook86::patch::PatchPlaceholder::new(#field_offsets, #field_relativity)),*
+                    #(#field_names: ::hook86::patch::PatchPlaceholder::new(#field_offsets, #field_relativity)),*
                 }
             }
 
