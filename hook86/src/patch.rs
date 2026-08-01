@@ -1,6 +1,7 @@
 use crate::{IntPtr, IntoAddress, PTR_SIZE};
 use crate::asm::{call, jmp, jz, jge, jl, NOP};
 use crate::mem;
+use crate::mem::MemoryError;
 
 pub use hook86_macro::patch;
 
@@ -82,7 +83,7 @@ impl Hook {
     }
 
     /// Install the hook persistently, consuming the `Hook` instance in the process
-    pub unsafe fn install_persistent(mut self) -> Result<(), mem::MemoryError> {
+    pub unsafe fn install_persistent(mut self) -> Result<(), MemoryError> {
         unsafe { self.install() }?;
         self.persist();
         Ok(())
@@ -95,7 +96,7 @@ impl Hook {
     }
 
     /// Install the hook, patching the patch bytes into memory at the hook address
-    pub unsafe fn install(&mut self) -> Result<(), mem::MemoryError> {
+    pub unsafe fn install(&mut self) -> Result<(), MemoryError> {
         if self.is_installed() {
             return Ok(());
         }
@@ -114,7 +115,7 @@ impl Hook {
     }
 
     /// Uninstall the hook, restoring the original bytes into memory at the hook address
-    pub unsafe fn uninstall(&mut self) -> Result<(), mem::MemoryError> {
+    pub unsafe fn uninstall(&mut self) -> Result<(), MemoryError> {
         if !self.is_installed() {
             return Ok(());
         }
