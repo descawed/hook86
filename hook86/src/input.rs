@@ -16,7 +16,7 @@ impl Keyboard {
         }
     }
 
-    pub fn update(&mut self) -> windows_result::Result<()> {
+    pub fn update(&mut self) -> windows::core::Result<()> {
         self.old_keys = self.new_keys;
         unsafe {
             if let Err(err) = GetKeyboardState(&mut self.new_keys) {

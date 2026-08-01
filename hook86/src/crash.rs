@@ -1,5 +1,3 @@
-#![cfg(feature = "crash_logging")]
-
 use std::ffi::c_void;
 use std::ops::BitAnd;
 use std::panic;
