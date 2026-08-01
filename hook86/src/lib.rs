@@ -1,3 +1,5 @@
+#![cfg(windows)]
+
 pub mod asm;
 pub mod input;
 pub mod mem;
