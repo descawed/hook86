@@ -80,13 +80,14 @@ pub unsafe fn protect(ptr: *const c_void, size: usize, protection: PAGE_PROTECTI
 ///
 /// The region containing the address will be unprotected prior to the write. After writing, the
 /// original protection will be restored.
-pub unsafe fn patch(addr: *const c_void, data: &[u8]) -> Result<(), MemoryError> {
+pub unsafe fn patch<T>(addr: *mut T, data: &[u8]) -> Result<(), MemoryError> {
+    let const_addr = addr as *const c_void;
     unsafe {
-        let old_protect = unprotect(addr, data.len())?;
+        let old_protect = unprotect(const_addr, data.len())?;
         std::slice::from_raw_parts_mut(addr as *mut u8, data.len()).copy_from_slice(data);
         // we're generally patching executable code, so flush the instruction cache
-        flush_instruction_cache(addr, data.len())?;
-        protect(addr, data.len(), old_protect)
+        flush_instruction_cache(const_addr, data.len())?;
+        protect(const_addr, data.len(), old_protect)
     }
 }
 
