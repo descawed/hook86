@@ -341,3 +341,9 @@ impl ByteSearcher {
         self.find_addresses(addresses, Some(PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE), modules)
     }
 }
+
+impl Default for ByteSearcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
