@@ -67,6 +67,13 @@ impl Hook {
         self
     }
 
+    /// Expect the given byte to be present at the hook address. If the byte at the hook address
+    /// does not match the expected byte, hook installation will fail.
+    pub fn expect_byte(mut self, expected_byte: u8) -> Self {
+        self.expected_bytes = vec![expected_byte];
+        self
+    }
+
     /// Expect the given bytes to be present at the hook address. If the bytes at the hook address
     /// do not match the expected bytes, hook installation will fail.
     pub fn expect_bytes(mut self, expected_bytes: &[u8]) -> Self {
