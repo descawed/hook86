@@ -2,7 +2,7 @@
 
 A Rust library of utilities for DLL-injection hacks on 32-bit x86.
 
-I've written this primarily for my personal use so I'm only briefly documenting it here. I could
+I've written this primarily for my personal use, so I'm only briefly documenting it here. I could
 try to clean it up a bit if anyone else has any interest in it.
 
 ## Overview
@@ -11,7 +11,7 @@ This library only supports 32-bit x86 at the moment. I expect I'll add x64 suppo
 when I have a project that requires it. I don't expect I'll ever support architectures other than
 x86; that would probably require a different library. The focus is on games, so only Windows is
 supported, as that's the platform that the overwhelming majority of games target. I have some
-interest in adding Linux support, but it would require a big refactor and I also don't plan to do
+interest in adding Linux support, but it would require a big refactor, and I also don't plan to do
 it until I have a project that requires it.
 
 The library includes a proc macro, so the repo is a Cargo workspace with two crates:
