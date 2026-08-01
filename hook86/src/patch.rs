@@ -1,4 +1,4 @@
-use crate::mem::{IntPtr, PTR_SIZE};
+use crate::{IntPtr, IntoAddress, PTR_SIZE};
 
 pub use hook86_macro::patch;
 
@@ -22,7 +22,8 @@ impl PatchPlaceholder {
     ///
     /// If `value` is a memory address, it should be an absolute address, even if the placeholder is
     /// relative.
-    pub fn set_value(&mut self, buf: &mut [u8], value: IntPtr) {
+    pub fn set_value(&mut self, buf: &mut [u8], value: impl IntoAddress) {
+        let value = value.into_address();
         self.value = Some(value);
 
         let value_bytes = if self.is_relative {
@@ -52,12 +53,28 @@ mod tests {
         ];
     }
 
+    patch! {
+        pub CallPatch = [
+            call call_target
+        ];
+    }
+
     #[test]
     fn test_patch_literals() {
         let mut test_patch = TestPatch::new();
-        unsafe { test_patch.bind(0x80000000, 0x80000080, 1234) }.unwrap();
+        unsafe { test_patch.bind(0x80000000u32, 0x80000080u32, 1234u32) }.unwrap();
 
         let buf = test_patch.buf();
         assert_eq!(buf[buf.len() - 5..], [0x68, 0xD2, 0x04, 0x00, 0x00]);
+    }
+
+    fn call_target(_: i32) {
+        // do nothing
+    }
+
+    #[test]
+    fn test_patch_call() {
+        let mut call_patch = CallPatch::new();
+        unsafe { call_patch.bind(call_target as *const ()) }.unwrap();
     }
 }

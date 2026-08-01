@@ -56,6 +56,82 @@ pub unsafe fn patch(addr: *const c_void, data: &[u8]) -> Result<()> {
     }
 }
 
+/// Trait for values that can be converted to an IntPtr
+pub trait IntoAddress {
+    fn into_address(self) -> IntPtr;
+}
+
+impl IntoAddress for IntPtr {
+    fn into_address(self) -> IntPtr {
+        self
+    }
+}
+
+impl IntoAddress for usize {
+    fn into_address(self) -> IntPtr {
+        self as IntPtr
+    }
+}
+
+impl<T> IntoAddress for *const T {
+    fn into_address(self) -> IntPtr {
+        self as IntPtr
+    }
+}
+
+impl<T> IntoAddress for *mut T {
+    fn into_address(self) -> IntPtr {
+        self as IntPtr
+    }
+}
+
+macro_rules! fn_addr_abi {
+    ($abi:literal, $($types:ident),*) => {
+        impl<Return, $($types),*> IntoAddress for extern $abi fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+
+        impl<Return, $($types),*> IntoAddress for unsafe extern $abi fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+    }
+}
+
+macro_rules! fn_addr {
+    ($($types:ident),*) => {
+        impl<Return, $($types),*> IntoAddress for fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+
+        impl<Return, $($types),*> IntoAddress for unsafe fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+
+        fn_addr_abi!("C", $($types),*);
+        fn_addr_abi!("system", $($types),*);
+        fn_addr_abi!("stdcall", $($types),*);
+        fn_addr_abi!("thiscall", $($types),*);
+        fn_addr_abi!("fastcall", $($types),*);
+    };
+}
+
+fn_addr!();
+fn_addr!(A);
+fn_addr!(A, B);
+fn_addr!(A, B, C);
+fn_addr!(A, B, C, D);
+fn_addr!(A, B, C, D, E);
+fn_addr!(A, B, C, D, E, F);
+// add more if 6 arguments isn't enough
+
 /// A utility for searching for byte strings in memory
 ///
 /// The ByteSearcher can search for multiple strings at one time. Searches can be filtered by the

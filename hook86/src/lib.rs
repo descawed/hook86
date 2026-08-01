@@ -8,4 +8,4 @@ pub mod mem;
 pub mod patch;
 pub mod crash;
 
-pub use mem::{IntPtr, PTR_SIZE};
+pub use mem::{IntPtr, IntoAddress, PTR_SIZE};
