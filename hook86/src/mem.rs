@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use memchr::memmem;
 use windows::core::{PWSTR, Result};
 use windows::Win32::Foundation::{HMODULE, MAX_PATH};
+use windows::Win32::System::Diagnostics::Debug::FlushInstructionCache;
 use windows::Win32::System::Memory::{VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_PROTECTION_FLAGS,
                                      PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY,
                                      PAGE_READWRITE, PAGE_WRITECOPY, PAGE_READONLY};
@@ -21,6 +22,11 @@ pub const PTR_SIZE: usize = size_of::<IntPtr>();
 /// The set of all protection flags that allow reading from the protected memory
 pub const READABLE_PROTECTION: PAGE_PROTECTION_FLAGS =
     PAGE_PROTECTION_FLAGS(PAGE_EXECUTE_READ.0 | PAGE_READONLY.0 | PAGE_READWRITE.0 | PAGE_WRITECOPY.0 | PAGE_EXECUTE_WRITECOPY.0 | PAGE_EXECUTE_READWRITE.0);
+
+/// Flush the instruction cache for the current process
+pub unsafe fn flush_instruction_cache(ptr: *const c_void, size: usize) -> Result<()> {
+    unsafe { FlushInstructionCache(GetCurrentProcess(), Some(ptr), size) }
+}
 
 /// Make a memory region readable, writable, and executable
 pub unsafe fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAGS> {
@@ -44,6 +50,8 @@ pub unsafe fn patch(addr: *const c_void, data: &[u8]) -> Result<()> {
     unsafe {
         let old_protect = unprotect(addr, data.len())?;
         std::slice::from_raw_parts_mut(addr as *mut u8, data.len()).copy_from_slice(data);
+        // we're generally patching executable code, so flush the instruction cache
+        flush_instruction_cache(addr, data.len())?;
         protect(addr, data.len(), old_protect)
     }
 }
