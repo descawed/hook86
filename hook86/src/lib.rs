@@ -1,6 +1,11 @@
+#![cfg(windows)]
+
+extern crate self as hook86;
+
 pub mod asm;
 pub mod input;
 pub mod mem;
 pub mod patch;
-#[cfg(feature = "crash_logging")]
 pub mod crash;
+
+pub use mem::{IntPtr, IntoAddress, PTR_SIZE};

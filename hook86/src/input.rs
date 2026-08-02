@@ -16,7 +16,7 @@ impl Keyboard {
         }
     }
 
-    pub fn update(&mut self) -> windows_result::Result<()> {
+    pub fn update(&mut self) -> windows::core::Result<()> {
         self.old_keys = self.new_keys;
         unsafe {
             if let Err(err) = GetKeyboardState(&mut self.new_keys) {
@@ -59,5 +59,11 @@ impl Keyboard {
         let is_down_once = is_down && !self.async_keys[key.0 as usize];
         self.async_keys[key.0 as usize] = is_down;
         is_down_once
+    }
+}
+
+impl Default for Keyboard {
+    fn default() -> Self {
+        Self::new()
     }
 }

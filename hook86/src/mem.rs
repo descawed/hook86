@@ -1,9 +1,11 @@
 use std::ffi::c_void;
 use std::collections::HashMap;
-
+use std::fmt::{Display, Formatter};
 use memchr::memmem;
-use windows::core::{PWSTR, Result};
+use thiserror::Error;
+use windows::core::{Error as WindowsError, PWSTR};
 use windows::Win32::Foundation::{HMODULE, MAX_PATH};
+use windows::Win32::System::Diagnostics::Debug::FlushInstructionCache;
 use windows::Win32::System::Memory::{VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_PROTECTION_FLAGS,
                                      PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY,
                                      PAGE_READWRITE, PAGE_WRITECOPY, PAGE_READONLY};
@@ -18,12 +20,50 @@ use windows::Win32::System::Threading::GetCurrentProcess;
 pub type IntPtr = u32;
 pub const PTR_SIZE: usize = size_of::<IntPtr>();
 
+fn format_bytes(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
+}
+
+#[derive(Error, Debug)]
+pub enum MemoryError {
+    OsError(#[from] WindowsError),
+    AssertionError { address: IntPtr, expected: Vec<u8>, actual: Vec<u8> },
+}
+
+impl MemoryError {
+    pub fn assertion(address: impl IntoAddress, expected: &[u8], actual: &[u8]) -> Self {
+        Self::AssertionError {
+            address: address.into_address(),
+            expected: expected.to_vec(),
+            actual: actual.to_vec(),
+        }
+    }
+}
+
+impl Display for MemoryError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MemoryError::OsError(err) => write!(f, "OS error: {err}"),
+            MemoryError::AssertionError { address, expected, actual } => {
+                let expected = format_bytes(expected);
+                let actual = format_bytes(actual);
+                write!(f, "Memory assertion failed at address {address:#X}: expected {expected}, found {actual}")
+            },
+        }
+    }
+}
+
 /// The set of all protection flags that allow reading from the protected memory
 pub const READABLE_PROTECTION: PAGE_PROTECTION_FLAGS =
     PAGE_PROTECTION_FLAGS(PAGE_EXECUTE_READ.0 | PAGE_READONLY.0 | PAGE_READWRITE.0 | PAGE_WRITECOPY.0 | PAGE_EXECUTE_WRITECOPY.0 | PAGE_EXECUTE_READWRITE.0);
 
+/// Flush the instruction cache for the current process
+pub unsafe fn flush_instruction_cache(ptr: *const c_void, size: usize) -> Result<(), MemoryError> {
+    unsafe { FlushInstructionCache(GetCurrentProcess(), Some(ptr), size) }.map_err(MemoryError::OsError)
+}
+
 /// Make a memory region readable, writable, and executable
-pub fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAGS> {
+pub unsafe fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAGS, MemoryError> {
     let mut old_protect = PAGE_PROTECTION_FLAGS::default();
     unsafe { VirtualProtect(ptr, size, PAGE_EXECUTE_READWRITE, &mut old_protect) }?;
 
@@ -31,20 +71,127 @@ pub fn unprotect(ptr: *const c_void, size: usize) -> Result<PAGE_PROTECTION_FLAG
 }
 
 /// Set the memory protection on a memory region
-pub fn protect(ptr: *const c_void, size: usize, protection: PAGE_PROTECTION_FLAGS) -> Result<()> {
+pub unsafe fn protect(ptr: *const c_void, size: usize, protection: PAGE_PROTECTION_FLAGS) -> Result<(), MemoryError> {
     let mut old_protect = PAGE_PROTECTION_FLAGS::default();
-    unsafe { VirtualProtect(ptr, size, protection, &mut old_protect) }
+    unsafe { VirtualProtect(ptr, size, protection, &mut old_protect) }.map_err(MemoryError::OsError)
 }
 
 /// Write the given data to the specified address within a protected memory region
 ///
 /// The region containing the address will be unprotected prior to the write. After writing, the
 /// original protection will be restored.
-pub unsafe fn patch(addr: *const c_void, data: &[u8]) -> Result<()> {
-    let old_protect = unprotect(addr, data.len())?;
-    unsafe { std::slice::from_raw_parts_mut(addr as *mut u8, data.len()).copy_from_slice(data) };
-    protect(addr, data.len(), old_protect)
+pub unsafe fn patch<T>(addr: *mut T, data: &[u8]) -> Result<(), MemoryError> {
+    let const_addr = addr as *const c_void;
+    unsafe {
+        let old_protect = unprotect(const_addr, data.len())?;
+        std::slice::from_raw_parts_mut(addr as *mut u8, data.len()).copy_from_slice(data);
+        // we're generally patching executable code, so flush the instruction cache
+        flush_instruction_cache(const_addr, data.len())?;
+        protect(const_addr, data.len(), old_protect)
+    }
 }
+
+/// Return an error if the byte at the given address does not match the expected value
+pub unsafe fn assert_byte<T>(addr: *const T, expected: u8) -> Result<(), MemoryError> {
+    let actual = unsafe { *(addr as *const u8) };
+    if actual != expected {
+        return Err(MemoryError::assertion(addr, &[expected], &[actual]));
+    }
+
+    Ok(())
+}
+
+/// Return an error if the bytes at the given address do not match the expected values
+pub unsafe fn assert_bytes<T>(addr: *const T, expected: &[u8]) -> Result<(), MemoryError> {
+    let actual = unsafe { std::slice::from_raw_parts(addr as *const u8, expected.len()) };
+    if actual != expected {
+        return Err(MemoryError::assertion(addr, expected, actual));
+    }
+
+    Ok(())
+}
+
+/// Trait for values that can be converted to an IntPtr
+pub trait IntoAddress {
+    fn into_address(self) -> IntPtr;
+}
+
+impl IntoAddress for IntPtr {
+    fn into_address(self) -> IntPtr {
+        self
+    }
+}
+
+impl IntoAddress for usize {
+    fn into_address(self) -> IntPtr {
+        self as IntPtr
+    }
+}
+
+impl<T> IntoAddress for *const T {
+    fn into_address(self) -> IntPtr {
+        self as IntPtr
+    }
+}
+
+impl<T> IntoAddress for *mut T {
+    fn into_address(self) -> IntPtr {
+        self as IntPtr
+    }
+}
+
+impl<T> IntoAddress for &T {
+    fn into_address(self) -> IntPtr {
+        (self as *const T).into_address()
+    }
+}
+
+macro_rules! fn_addr_abi {
+    ($abi:literal, $($types:ident),*) => {
+        impl<Return, $($types),*> IntoAddress for extern $abi fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+
+        impl<Return, $($types),*> IntoAddress for unsafe extern $abi fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+    }
+}
+
+macro_rules! fn_addr {
+    ($($types:ident),*) => {
+        impl<Return, $($types),*> IntoAddress for fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+
+        impl<Return, $($types),*> IntoAddress for unsafe fn($($types),*) -> Return {
+            fn into_address(self) -> IntPtr {
+                <*const () as IntoAddress>::into_address(self as *const ())
+            }
+        }
+
+        fn_addr_abi!("C", $($types),*);
+        fn_addr_abi!("system", $($types),*);
+        fn_addr_abi!("stdcall", $($types),*);
+        fn_addr_abi!("thiscall", $($types),*);
+        fn_addr_abi!("fastcall", $($types),*);
+    };
+}
+
+fn_addr!();
+fn_addr!(A);
+fn_addr!(A, B);
+fn_addr!(A, B, C);
+fn_addr!(A, B, C, D);
+fn_addr!(A, B, C, D, E);
+fn_addr!(A, B, C, D, E, F);
+// add more if 6 arguments isn't enough
 
 /// A utility for searching for byte strings in memory
 ///
@@ -177,7 +324,7 @@ impl ByteSearcher {
     /// Enumerate the modules loaded in the current process
     ///
     /// This method must be called once prior to attempting any searches that filter by module.
-    pub fn discover_modules(&mut self) -> Result<()> {
+    pub fn discover_modules(&mut self) -> Result<(), MemoryError> {
         // reset module list in case we need to discover modules multiple times (e.g. dynamic DLL
         // load)
         self.modules.clear();
@@ -337,5 +484,11 @@ impl ByteSearcher {
         modules: &[&str; M],
     ) -> [bool; N] {
         self.find_addresses(addresses, Some(PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE), modules)
+    }
+}
+
+impl Default for ByteSearcher {
+    fn default() -> Self {
+        Self::new()
     }
 }
