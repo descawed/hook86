@@ -4,14 +4,18 @@ use std::fmt::{Display, Formatter};
 use memchr::memmem;
 use thiserror::Error;
 use windows::core::{Error as WindowsError, PWSTR};
-use windows::Win32::Foundation::{HMODULE, MAX_PATH};
+use windows::Win32::Foundation::{HMODULE, MAX_PATH, GetLastError};
 use windows::Win32::System::Diagnostics::Debug::FlushInstructionCache;
-use windows::Win32::System::Memory::{VirtualProtect, VirtualQuery, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_PROTECTION_FLAGS,
+use windows::Win32::System::Memory::{VirtualAlloc, VirtualProtect, VirtualQuery,
+                                     MEMORY_BASIC_INFORMATION,
+                                     MEM_COMMIT, MEM_RESERVE,
+                                     PAGE_PROTECTION_FLAGS,
                                      PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY,
                                      PAGE_READWRITE, PAGE_WRITECOPY, PAGE_READONLY};
 use windows::Win32::System::ProcessStatus::{
     EnumProcessModules, GetModuleBaseNameW, GetModuleInformation, MODULEINFO,
 };
+use windows::Win32::System::SystemInformation::{GetSystemInfo, SYSTEM_INFO};
 use windows::Win32::System::Threading::GetCurrentProcess;
 
 // currently we only support 32-bit x86, but I'd like to keep the flexibility to support x64 in the
@@ -28,6 +32,7 @@ fn format_bytes(bytes: &[u8]) -> String {
 pub enum MemoryError {
     OsError(#[from] WindowsError),
     AssertionError { address: IntPtr, expected: Vec<u8>, actual: Vec<u8> },
+    UnknownError(String),
 }
 
 impl MemoryError {
@@ -49,6 +54,7 @@ impl Display for MemoryError {
                 let actual = format_bytes(actual);
                 write!(f, "Memory assertion failed at address {address:#X}: expected {expected}, found {actual}")
             },
+            MemoryError::UnknownError(err) => write!(f, "Unknown error: {err}"),
         }
     }
 }
@@ -109,6 +115,21 @@ pub unsafe fn assert_bytes<T>(addr: *const T, expected: &[u8]) -> Result<(), Mem
     }
 
     Ok(())
+}
+
+pub unsafe fn allocate_static_arena(size: usize) -> Result<&'static mut [u8], MemoryError> {
+    let mut system_info = SYSTEM_INFO::default();
+    unsafe { GetSystemInfo(&mut system_info) };
+    let size = size.next_multiple_of(system_info.dwAllocationGranularity as usize);
+
+    let ptr = unsafe { VirtualAlloc(None, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE) };
+    if ptr.is_null() {
+        unsafe { GetLastError() }.ok()?;
+        // if we're still here, something weird has happened
+        return Err(MemoryError::UnknownError("VirtualAlloc failed with no error code".to_string()));
+    }
+
+    Ok(unsafe { std::slice::from_raw_parts_mut(ptr as *mut u8, size) })
 }
 
 /// Trait for values that can be converted to an IntPtr
