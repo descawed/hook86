@@ -8,6 +8,7 @@ readme = "../README.md"
 repository = "https://github.com/descawed/hook86"
 
 [dependencies]
+hook86_dll_main = { path = "../hook86_dll_main" }
 hook86_macro = { path = "../hook86_macro" }
 log = "0.4.33"
 memchr = "2.8.3"

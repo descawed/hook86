@@ -204,7 +204,7 @@ pub fn patch(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #visibility struct #name {
-            __buf: [u8; #patch_size],
+            __buf: [::std::primitive::u8; #patch_size],
             #(#field_names: ::hook86::patch::PatchPlaceholder),*
         }
 
@@ -216,17 +216,17 @@ pub fn patch(input: TokenStream) -> TokenStream {
                 }
             }
 
-            pub const fn buf(&self) -> &[u8] {
+            pub const fn buf(&self) -> &[::std::primitive::u8] {
                 self.__buf.as_slice()
             }
 
-            pub const fn buf_raw(&self) -> *const u8 {
+            pub const fn buf_raw(&self) -> *const ::std::primitive::u8 {
                 self.buf().as_ptr()
             }
 
-            pub unsafe fn bind(&mut self, #(#field_names: impl ::hook86::IntoAddress,)*) -> Result<*const u8, ::hook86::mem::MemoryError> {
+            pub unsafe fn bind(&mut self, #(#field_names: impl ::hook86::IntoAddress,)*) -> Result<*const ::std::primitive::u8, ::hook86::mem::MemoryError> {
                 #(self.#field_names.set_value(&mut self.__buf, #field_names);)*
-                unsafe { ::hook86::mem::unprotect(self.buf_raw() as *const std::ffi::c_void, #patch_size).map(|_| self.buf_raw()) }
+                unsafe { ::hook86::mem::unprotect(self.buf_raw() as *const ::std::ffi::c_void, #patch_size).map(|_| self.buf_raw()) }
             }
         }
     };

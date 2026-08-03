@@ -9,3 +9,5 @@ pub mod patch;
 pub mod crash;
 
 pub use mem::{IntPtr, IntoAddress, PTR_SIZE};
+
+pub use hook86_dll_main::dll_main;

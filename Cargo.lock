@@ -6,11 +6,21 @@ version = 4
 name = "hook86"
 version = "0.2.0"
 dependencies = [
+ "hook86_dll_main",
  "hook86_macro",
  "log",
  "memchr",
  "thiserror",
  "windows",
+]
+
+[[package]]
+name = "hook86_dll_main"
+version = "0.2.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
 ]
 
 [[package]]
