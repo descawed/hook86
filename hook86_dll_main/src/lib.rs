@@ -119,7 +119,7 @@ pub fn dll_main(args: TokenStream, input: TokenStream) -> TokenStream {
         #input // original function
 
         // ensure the instance type is the same size as a pointer
-        const _: () = assert!(size_of::<#instance_type>() == size_of::<*mut ::std::ffi::c_void>);
+        const _: () = assert!(size_of::<#instance_type>() == size_of::<*mut ::std::ffi::c_void>());
 
         #[unsafe(no_mangle)]
         #[allow(non_snake_case, unused_variables)]
