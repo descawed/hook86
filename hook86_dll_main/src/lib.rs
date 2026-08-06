@@ -71,6 +71,16 @@ pub fn dll_main(args: TokenStream, input: TokenStream) -> TokenStream {
         return compile_error(&inputs, "A dll_main function must accept at most two arguments, the call reason and the DLL handle");
     }
 
+    let set_call_reason = quote! {
+        let call_reason = match reason {
+            #DLL_PROCESS_ATTACH => ::hook86::dll::CallReason::ProcessAttach { is_static_load: !reserved.is_null() },
+            #DLL_PROCESS_DETACH => ::hook86::dll::CallReason::ProcessDetach { is_process_exiting: !reserved.is_null() },
+            #DLL_THREAD_ATTACH => ::hook86::dll::CallReason::ThreadAttach,
+            #DLL_THREAD_DETACH => ::hook86::dll::CallReason::ThreadDetach,
+            _ => return 0, // unknown call reason
+        };
+    };
+
     let mut instance_type: Type = parse_quote!(*mut ::std::ffi::c_void);
     let call = match inputs.len() {
         0 => quote!(#name()),
@@ -78,7 +88,10 @@ pub fn dll_main(args: TokenStream, input: TokenStream) -> TokenStream {
             // if there's only one argument, then it's the reason if the function accepts multiple
             // reasons, otherwise it's the handle
             if needs_reason {
-                quote!(#name(reason))
+                quote! {
+                    #set_call_reason
+                    #name(reason)
+                }
             } else {
                 instance_type = match handle_type(&input, 0) {
                     Ok(ty) => ty,
@@ -92,7 +105,10 @@ pub fn dll_main(args: TokenStream, input: TokenStream) -> TokenStream {
                 Ok(ty) => ty,
                 Err(e) => return TokenStream::from(e.into_compile_error()),
             };
-            quote!(#name(instance, reason))
+            quote! {
+                #set_call_reason
+                #name(instance, reason)
+            }
         }
         _ => unreachable!(),
     };
@@ -107,8 +123,8 @@ pub fn dll_main(args: TokenStream, input: TokenStream) -> TokenStream {
             match #call {
                 Ok(_) => 1,
                 Err(e) => {
-                    ::log::error!("Fatal error: {e}");
-                    ::log::logger().flush();
+                    ::hook86::log::error!("Fatal error: {e}");
+                    ::hook86::log::logger().flush();
                     0
                 }
             }
@@ -123,7 +139,7 @@ pub fn dll_main(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #[unsafe(no_mangle)]
         #[allow(non_snake_case, unused_variables)]
-        pub extern "system" fn DllMain(instance: #instance_type, reason: ::std::primitive::u32, _reserved: *const ::std::ffi::c_void) -> ::std::primitive::i32 {
+        pub extern "system" fn DllMain(instance: #instance_type, reason: ::std::primitive::u32, reserved: *const ::std::ffi::c_void) -> ::std::primitive::i32 {
             #reason_filter
 
             #call_and_return

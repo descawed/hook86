@@ -29,6 +29,40 @@ instruction at the given address and return the absolute address that the branch
 
 Optional crash logging infrastructure for when the hacks are a little too hacky. Logs via the `log` crate.
 
+### dll
+
+The `dll_main` macro can be applied to a function to generate the `DllMain` boilerplate. The macro can optionally take
+arguments to subscribe your function to only certain call reasons:
+- `process` - `DLL_PROCESS_ATTACH` and `DLL_PROCESS_DETACH`
+- `thread` - `DLL_THREAD_ATTACH` and `DLL_THREAD_DETACH`
+- `process_attach` - `DLL_PROCESS_ATTACH`
+- `process_detach` - `DLL_PROCESS_DETACH`
+- `thread_attach` - `DLL_THREAD_ATTACH`
+- `thread_detach` - `DLL_THREAD_DETACH`
+
+When `DllMain` is called for any reason you don't subscribe to, it will return `TRUE` and your function will not be
+called. Passing no arguments to the macro is the same as subscribing to all call reasons.
+
+Your function signature must be one of the following:
+- If you subscribe to only a single call reason:
+  - `fn()`
+  - `fn() -> Result<_>`
+  - `fn(HINSTANCE)`
+  - `fn(HINSTANCE) -> Result<_>`
+- If you subscribe to multiple call reasons:
+  - `fn(CallReason)`
+  - `fn(CallReason) -> Result<_>`
+  - `fn(HINSTANCE, CallReason)`
+  - `fn(HINSTANCE, CallReason) -> Result<_>`
+
+The `CallReason` argument is the call reason (based on `fdwReason` and `lpvReserved`) and the `HINSTANCE` argument is
+the module handle (`hinstDLL`). The module handle type doesn't have to be `HINSTANCE` specifically; it can be any
+pointer-sized type.
+
+If your function returns nothing, `DllMain` will always return `TRUE`. If it returns a `Result`, `DllMain` will return
+`TRUE` if the `Result` is `Ok`, or log the error with the `log` crate and return `FALSE` if the `Result` is `Err` (so
+your error type must implement `Display`).
+
 ### mem
 
 Contains utilities for manipulating memory – removing protection (i.e., enabling read, write, and
@@ -49,36 +83,3 @@ Also contains the `Hook` type for installing hooks in the target process. `Hook`
 given bytes, with convenience functions for creating branch instructions to a given destination address. When the `Hook`
 is dropped, the original bytes are restored, unless the hook is made persistent with the `persist` or
 `install_persistent` methods.
-
-### dll_main
-
-The `dll_main` macro can be applied to a function to generate the `DllMain` boilerplate. The macro can optionally take
-arguments to subscribe your function to only certain call reasons:
-- `process` - `DLL_PROCESS_ATTACH` and `DLL_PROCESS_DETACH`
-- `thread` - `DLL_THREAD_ATTACH` and `DLL_THREAD_DETACH`
-- `process_attach` - `DLL_PROCESS_ATTACH`
-- `process_detach` - `DLL_PROCESS_DETACH`
-- `thread_attach` - `DLL_THREAD_ATTACH`
-- `thread_detach` - `DLL_THREAD_DETACH`
-
-When `DllMain` is called for any reason you don't subscribe to, it will return `TRUE` and your function will not be
-called. Passing no arguments to the macro is the same as subscribing to all call reasons.
-
-Your function signature must be one of the following:
-- If you subscribe to only a single call reason:
-  - `fn()` 
-  - `fn() -> Result<_>`
-  - `fn(HINSTANCE)`
-  - `fn(HINSTANCE) -> Result<_>`
-- If you subscribe to multiple call reasons:
-  - `fn(u32)` 
-  - `fn(u32) -> Result<_>`
-  - `fn(HINSTANCE, u32)`
-  - `fn(HINSTANCE, u32) -> Result<_>`
-
-The `u32` argument is the call reason (`fdwReason`) and the `HINSTANCE` argument is the module handle (`hinstDLL`).
-The module handle type doesn't have to be `HINSTANCE` specifically; it can be any pointer-sized type.
-
-If your function returns nothing, `DllMain` will always return `TRUE`. If it returns a `Result`, `DllMain` will return
-`TRUE` if the `Result` is `Ok`, or log the error with the `log` crate and return `FALSE` if the `Result` is `Err` (so
-your error type must implement `Display`).

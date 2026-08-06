@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "hook86"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "hook86_dll_main",
  "hook86_macro",
