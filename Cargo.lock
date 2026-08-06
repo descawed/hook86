@@ -16,9 +16,8 @@ dependencies = [
 
 [[package]]
 name = "hook86_dll_main"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
- "proc-macro2",
  "quote",
  "syn 3.0.3",
 ]

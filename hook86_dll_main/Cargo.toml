@@ -1,6 +1,6 @@
 [package]
 name = "hook86_dll_main"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["descawed <github@descawed.com>"]
 edition = "2024"
 
@@ -8,6 +8,5 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0.107"
 quote = "1.0.47"
 syn = { version = "3.0.3", features = ["full"] }
